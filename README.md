@@ -1,59 +1,90 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+Deal. Ye approach ekdum professional hai. Corporate mein ise **"Product Requirement Document" (PRD)** kehte hain.
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Jab requirements lock ho jati hain, tabhi architect (jo ab tum ho) design banata hai. Isse baar-baar code change karne ki mehnat bachti hai.
 
-## About Laravel
+Neeche **ProManage (MVP Phase 1)** ki complete requirements hain. Ise dhyan se padho, ye tumhara "Client Requirement" hai.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+-----
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### **Project Name: ProManage (Mini Jira/Trello Clone)**
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+#### **1. High-Level Overview**
 
-## Learning Laravel
+Ek SaaS tool jahan Users projects create kar sakein aur tasks manage kar sakein using a Kanban Board (Todo -\> In Progress -\> Done).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+#### **2. Core Modules & Features**
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**A. Authentication (Security Module)**
 
-## Laravel Sponsors
+1.  **Register:** User name, email, password se account banayega.
+2.  **Login:** Email/Password se login. (Token based - Sanctum).
+3.  **Logout:** Token destroy hona chahiye.
+4.  **Guest Restriction:** Bina login kiye koi dashboard nahi dekh sakta.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+**B. Project Management (The Container)**
 
-### Premium Partners
+1.  **Create Project:** User naya project banayega (Name, Description).
+2.  **List Projects:** User ko dashboard pe sirf *apne* projects dikhenge (jo usne banaye ya jisme wo member hai).
+3.  **Project Details:** Project click karne pe uske andar ke tasks dikhenge.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+**C. Task Management (The Core Logic)**
 
-## Contributing
+1.  **Create Task:** Task mein Title, Description, Priority (Low/Med/High), aur Due Date hogi.
+2.  **Assign Task:** Task kisi existing user ko assign kiya ja sakta hai.
+3.  **Kanban View (Imp):** Tasks columns mein dikhenge based on status:
+      * Pending (Todo)
+      * In Progress
+      * Completed
+4.  **Move Task:** User task ka status change kar sakega (Drag & drop logic preparation).
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+-----
 
-## Code of Conduct
+### **Tera Task: System Design (Paper Work)**
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Ab copy-pen utha. Tujhe **Code nahi likhna hai**, tujhe **Design** banana hai. Tujhe 2 diagrams banane hain:
 
-## Security Vulnerabilities
+#### **Diagram 1: ER Diagram (Database Schema)**
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Database ke tables aur unka rishta (relationship) draw kar.
 
-## License
+  * **Entities:** Users, Projects, Tasks.
+  * **Lines (Relationships):**
+      * Ek User ke paas kitne Projects ho sakte hain?
+      * Ek Project mein kitne Tasks ho sakte hain?
+      * Ek Task kitne users ko assign ho sakta hai?
+  * **Think:** "Foreign Keys" kahan lagengi?
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+[Image of ER diagram for project management system]
+
+#### **Diagram 2: API & Data Structure Design (JSON Response)**
+
+Ye bohot important hai. Frontend dev (React) ko backend se kaisa data milega?
+Paper pe likh ke plan kar ki jab hum **"Project Dashboard"** kholenge, to JSON kaisa dikhna chahiye?
+
+*Example format jo paper pe likhna hai:*
+
+```json
+// GET /projects/1 (Example)
+{
+  "id": 1,
+  "name": "Website Redesign",
+  "tasks": [
+     { "id": 101, "title": "Fix Header", "status": "todo", "assigned_to": "Amit" },
+     { "id": 102, "title": "API Setup", "status": "in_progress", "assigned_to": "Rahul" }
+  ]
+}
+```
+
+*Soch:* Kya hum saare tasks ek saath load karenge ya alag API call hogi? (Senior dev approach: Optimization sochna).
+
+-----
+
+### **Kaise Start Kare?**
+
+1.  Is requirement ko padh ke **Database Tables** draw kar.
+2.  Arrows bana ke connect kar (One-to-One, One-to-Many).
+3.  Mujhe bata (ya photo bhej nahi sakta to text mein likh) ki tune kya relations banaye hain.
+
+**Example:** "Bhai, User table connected hai Project se One-to-Many, kyunki ek user bohot project bana sakta hai."
+
+Jaise hi tu ye confirm karega, hum **Code Freeze** hata denge aur implementation start karenge. **Go\!**
