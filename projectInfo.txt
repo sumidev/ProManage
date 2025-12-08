@@ -1,0 +1,269 @@
+Sahi — since tum React + Redux already kar chuke ho aur Next.js pe shift bhi ho rahe ho, yeh project **interview-ready** bhi banega aur Next.js migration ke liye bhi help karega.
+
+Main seedha, no-fluff project deta hoon jo tum **React + Redux** (Redux Toolkit) me banao. MVP tez aur clean hona chahiye, interview me demo dene layak.
+
+# Project: **Interview Prep Dashboard**
+
+(kyunki tum job switch kar rahe ho — ye project tumhare profile ko directly strong karega)
+
+## Short description
+
+Ek single-page dashboard jisme tum apne interview tasks, topic-wise questions, mock interviews, and company applications manage karoge. Crucial features: auth, CRUD, filters, pagination, optimistic updates, tests, deploy.
+
+---
+
+# MVP Features (must-have)
+
+1. **Authentication** (email + password, mock JWT)
+2. **Dashboard** — summary cards: total applications, upcoming mocks, topics to revise.
+3. **Applications CRUD** — Add company applications (company, role, stage, appliedOn, expectedSalary).
+4. **Topics CRUD** — Topics (e.g., React, Redux, System Design) with progress% and notes.
+5. **Questions CRUD** — add questions under topics, mark as solved/unsolved, difficulty tag.
+6. **Mock Interview Scheduler** — date/time, interviewer, status. Calendar list view.
+7. **Filters & Search** — filter applications by stage, search questions by text/tag.
+8. **Optimistic UI updates** for marking solved, and proper error rollback.
+9. **Persistent storage** via a simple backend (JSON Server / Express + lowdb) or localStorage for prototype.
+10. **Responsive UI** and deployable to Vercel/Netlify + backend to Render/Heroku (or keep backend mocked).
+
+---
+
+# Nice-to-have / Interview-pleasing (stretch)
+
+* Use **Redux Toolkit Query (RTK Query)** for API caching & invalidation.
+* Pagination and infinite scroll for question list.
+* Rate-limit / debounce search.
+* Undo action for deletes (snackbar).
+* Unit tests for reducers & component tests (React Testing Library + Jest).
+* CI pipeline (GitHub Actions) to run tests and deploy.
+* TypeScript migration (bonus).
+* Accessibility checks / Lighthouse > 90.
+
+---
+
+# Tech Stack (what to mention in CV)
+
+* Frontend: React (functional components + hooks), Redux Toolkit (slices + RTK Query optional), React Router.
+* Styling: Tailwind CSS OR CSS modules / Chakra UI.
+* Backend (for demo): JSON Server or small Express + lowdb.
+* DB (if full): SQLite / Postgres.
+* Testing: Jest + React Testing Library.
+* Deployment: Vercel for front, Render/Heroku for backend.
+
+---
+
+# Data Models (simple schemas)
+
+**User**
+
+```json
+{
+  "id": "uuid",
+  "email": "sumit@example.com",
+  "name": "Sumit"
+}
+```
+
+**Application**
+
+```json
+{
+  "id": "uuid",
+  "company": "Google",
+  "role": "Frontend Engineer",
+  "stage": "Phone Screen", // Applied, Phone Screen, Interview, Offer, Rejected
+  "appliedOn": "2025-11-10",
+  "expectedSalaryLPA": 18,
+  "notes": "Referral via X"
+}
+```
+
+**Topic**
+
+```json
+{
+  "id": "uuid",
+  "title": "React Hooks",
+  "progress": 40, // percent
+  "priority": "High",
+  "notes": ""
+}
+```
+
+**Question**
+
+```json
+{
+  "id": "uuid",
+  "topicId": "...",
+  "text": "Explain useMemo vs useCallback",
+  "difficulty": "Medium",
+  "solved": false,
+  "tags": ["react","hooks"]
+}
+```
+
+**MockInterview**
+
+```json
+{
+  "id": "uuid",
+  "title": "System design mock",
+  "date": "2025-11-20T18:00:00.000Z",
+  "durationMin": 60,
+  "status": "Scheduled"
+}
+```
+
+---
+
+# Redux structure (recommended)
+
+* `store/` setup with Redux Toolkit `configureStore`.
+* `slices/`:
+
+  * `authSlice` (login/logout, token)
+  * `applicationsSlice` (list, add, update, delete)
+  * `topicsSlice`
+  * `questionsSlice` (with selectors for solved/unsolved)
+  * `uiSlice` (snackbar, loading states)
+* Use thunks or RTK Query for async API calls.
+
+### Minimal store setup (example)
+
+```js
+import { configureStore } from '@reduxjs/toolkit'
+import authReducer from './slices/authSlice'
+import appsReducer from './slices/applicationsSlice'
+export const store = configureStore({
+  reducer: {
+    auth: authReducer,
+    apps: appsReducer,
+    // ...
+  },
+})
+```
+
+---
+
+# UI Pages / Components
+
+* `/login` — Login form
+* `/` — Dashboard (cards + upcoming mocks)
+* `/applications` — list + filters + add modal
+* `/topics` — list with progress bars
+* `/topics/:id` — question list + add question
+* `/mocks` — calendar/list
+* Shared components: `Header`, `Sidebar`, `Card`, `Modal`, `Toast/Snackbar`, `ProtectedRoute`
+
+---
+
+# Acceptance Criteria (how you’ll know it’s done)
+
+* Auth works and user-specific data persists.
+* Can create/read/update/delete Applications, Topics, Questions.
+* Filters and search return correct results.
+* Marking question solved updates UI optimistically and persists.
+* Deployed front-end app with demo backend accessible.
+* README with setup + screenshots + demo link + short video (2 min) showing flows.
+* At least 6 unit/component tests passing.
+
+---
+
+# Minimal 14-day plan (doable + focused)
+
+Day 1 — Project scaffold, routing, store setup, login flow (mock).
+Day 2 — Applications list + add/edit/delete (Redux + UI).
+Day 3 — Topics list + progress UI + CRUD.
+Day 4 — Questions under topics + mark solved (optimistic update).
+Day 5 — Mock interview scheduler UI + list.
+Day 6 — Filters & search across apps/questions.
+Day 7 — Polish UI, responsive styles, README start.
+Day 8 — Add backend mock (JSON Server) & connect via RTK Query / thunks.
+Day 9 — Optimistic update rollback handling + error handling.
+Day 10 — Tests (reducers + 2–3 components).
+Day 11 — Deploy frontend to Vercel, backend to Render/Heroku (or keep JSON server deployed).
+Day 12 — Create demo video + update README.
+Day 13 — Fix bugs, improve performance (lazy load, memoize lists).
+Day 14 — Final polish, prepare a 2-minute walkthrough script for interviews.
+
+---
+
+# Starter checklist (copy-paste to GitHub issue)
+
+* [ ] Initialize repo + README
+* [ ] Setup React + Redux Toolkit
+* [ ] Implement Auth (mock)
+* [ ] Implement Applications CRUD
+* [ ] Implement Topics + Questions CRUD
+* [ ] Implement Filters & Search
+* [ ] Implement Optimistic Updates
+* [ ] Add Tests (unit + component)
+* [ ] Deploy (Vercel + Render)
+* [ ] Prepare demo video & README
+
+---
+
+# Interview talking points to highlight (when demoing)
+
+* “I used Redux Toolkit for predictable state + RTK Query for caching”
+* “Implemented optimistic updates with rollback to improve UX”
+* “I improved initial load by code-splitting and memoizing heavy lists”
+* “Deployed full stack; CI runs tests before deploy”
+* “If migrated to Next.js: convert pages to App Router, use Server Components for dashboards and keep client components for interactive parts.” (This shows migration thinking.)
+
+---
+
+# Quick starter code snippet (Question solved toggle thunk)
+
+```js
+// slices/questionsSlice.js (RTK)
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
+export const toggleSolved = createAsyncThunk(
+  'questions/toggleSolved',
+  async ({ id, solved }, { rejectWithValue, dispatch }) => {
+    // optimistic update simulated by client; call API then confirm
+    try {
+      const res = await fetch(`/api/questions/${id}`, {
+        method: 'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ solved })
+      })
+      if(!res.ok) throw new Error('Server error')
+      return await res.json()
+    } catch (err) {
+      return rejectWithValue({ id, error: err.message })
+    }
+  }
+)
+const questionsSlice = createSlice({
+  name: 'questions',
+  initialState: { items: [], status: 'idle', error: null },
+  reducers: {
+    optimisticToggle(state, action) {
+      const q = state.items.find(x => x.id === action.payload.id)
+      if(q) q.solved = action.payload.solved
+    }
+  },
+  extraReducers: builder => {
+    builder
+      .addCase(toggleSolved.rejected, (state, action) => {
+        // rollback
+        const q = state.items.find(x => x.id === action.payload.id)
+        if(q) q.solved = !q.solved
+        state.error = action.payload.error
+      })
+  }
+})
+export const { optimisticToggle } = questionsSlice.actions
+export default questionsSlice.reducer
+```
+
+---
+
+# Final — direct next step for you
+
+Pick one:
+A) **I’ll start this project now** — tell me “start” and I’ll give Day-1 exact tasks and code snippets.
+B) **I want a smaller variant** (only Applications + Questions) — tell me “small” and I’ll shrink scope.
+
+Tumhari shift already sahi direction me hai. Ab discipline se 14 din me demo ready karo — fir main interview questions + walkthrough script de dunga.
