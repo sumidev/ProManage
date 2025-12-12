@@ -1,27 +1,30 @@
 <?php
 
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\TaskController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// Route::get('/user', function (Request $request) {
+//     return $request->user();
+// })->middleware('auth:sanctum');
 
-// Route::post('/register', [AuthController::class, 'register']);
-// Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
-// // Protected routes
-// Route::middleware('auth:sanctum')->group(function () {
-//     // Auth routes
-//     Route::post('/logout', [AuthController::class, 'logout']);
-//     Route::get('/user', [AuthController::class, 'user']);
+// Protected routes
+Route::middleware('auth:sanctum')->group(function () {
+    // Auth routes
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'user']);
 
-//     // Project routes
-//     Route::apiResource('projects', ProjectController::class);
+    // Project routes
+    Route::apiResource('projects', ProjectController::class);
 
-//     // Task routes
-//     Route::post('projects/{project}/tasks', [TaskController::class, 'store']);
-//     Route::put('tasks/{task}', [TaskController::class, 'update']);
-//     Route::patch('tasks/{task}/status', [TaskController::class, 'updateStatus']);
-//     Route::delete('tasks/{task}', [TaskController::class, 'destroy']);
-// });
+    // Task routes
+    Route::post('projects/{project}/tasks', [TaskController::class, 'store']);
+    Route::put('tasks/{task}', [TaskController::class, 'update']);
+    Route::patch('tasks/{task}/status', [TaskController::class, 'updateStatus']);
+    Route::delete('tasks/{task}', [TaskController::class, 'destroy']);
+});
