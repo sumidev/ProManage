@@ -75,4 +75,13 @@ class ProjectPolicy
     {
         return false;
     }
+
+    public function before(User $user, string $ability): ?bool
+    {
+        if ($user->system_role === 'admin') {
+            return true;
+        }
+
+        return null;
+    }
 }
