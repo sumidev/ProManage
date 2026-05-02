@@ -18,8 +18,10 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->enum('priority', ['low', 'medium', 'high', 'critical'])->default('medium');
             $table->string('status')->default('todo');
-            $table->string('stage')->nullable();
+            $table->enum('type', ['task', 'bug', 'feature', 'story'])->default('task');
             $table->date('due_date')->nullable();
+            $table->string('stage')->index();
+            $table->integer('order')->default(0);
             $table->foreignId('assigned_by')->constrained('users');
             $table->foreignId('assigned_to')->nullable()->constrained('users');
             $table->timestamps();

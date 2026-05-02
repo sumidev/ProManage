@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class TaskController extends Controller
 {
@@ -37,39 +39,46 @@ class TaskController extends Controller
             ], 403);
         }
 
-        $request->validate([
-            'title' => 'required|string|max:255',
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'priority' => 'required|in:low,medium,high',
+            'priority' => 'required|in:low,medium,high,critical',
             'due_date' => 'nullable|date',
+            'stage' => 'nullable|string',
             'assigned_to' => 'nullable|exists:users,id',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $task = $project->tasks()->create([
-            'title' => $request->title,
+            'name' => $request->name,
             'description' => $request->description,
             'priority' => $request->priority,
             'status' => 'pending',
             'due_date' => $request->due_date,
             'assigned_to' => $request->assigned_to,
+            'assigned_by' => $request->user()->id,
+            'stage' => $request->stage,
         ]);
 
-        $task->load('assignedUser:id,name');
+        $task->load('assignedUser:id,first_name,last_name');
 
         return response()->json([
             'success' => true,
             'message' => 'Task created successfully',
             'data' => [
                 'id' => $task->id,
-                'title' => $task->title,
+                'name' => $task->name,
                 'description' => $task->description,
                 'priority' => $task->priority,
                 'status' => $task->status,
                 'due_date' => $task->due_date?->format('Y-m-d'),
-                'assigned_to' => $task->assignedUser ? [
-                    'id' => $task->assignedUser->id,
-                    'name' => $task->assignedUser->name,
-                ] : null,
+                'assigned_to' => $task->assignedUser ? $task->assignedUser : null,
             ],
         ], 201);
     }
@@ -95,7 +104,6 @@ class TaskController extends Controller
      */
     public function update(Request $request, Task $task)
     {
-        // Authorization check
         if ($task->project->user_id !== $request->user()->id) {
             return response()->json([
                 'success' => false,
@@ -103,41 +111,44 @@ class TaskController extends Controller
             ], 403);
         }
 
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'priority' => 'required|in:low,medium,high',
-            'status' => 'required|in:pending,in_progress,completed',
-            'due_date' => 'nullable|date',
-            'assigned_to' => 'nullable|exists:users,id',
+        $validatedData = $request->validate([
+            'name'        => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|nullable|string',
+            'priority'    => 'sometimes|required|in:low,medium,high,critical',
+            'stage'       => 'sometimes|required|string',
+            'due_date'    => 'sometimes|nullable|date',
+            'assigned_to' => 'sometimes|nullable|exists:users,id',
         ]);
 
-        $task->update([
-            'title' => $request->title,
-            'description' => $request->description,
-            'priority' => $request->priority,
-            'status' => $request->status,
-            'due_date' => $request->due_date,
-            'assigned_to' => $request->assigned_to,
-        ]);
+        $task->update($validatedData);
 
-        $task->load('assignedUser:id,name');
+        $updatedFields = $task->only(array_keys($validatedData));
+
+        if (array_key_exists('assigned_to', $validatedData) && $validatedData['assigned_to'] !== null) {
+            $updatedFields['assigned_to'] = $task->project->members()
+                ->where('users.id', $validatedData['assigned_to'])
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id'        => $user->id,
+                        'first_name' => $user->first_name,
+                        'last_name'  => $user->last_name,
+                        'email'     => $user->email,
+                        'role'      => $user->pivot->role ?? 'member',
+                        'avatar'    => $user->profile_pic ?? null,
+                    ];
+                })
+                ->first();
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Task updated successfully',
-            'data' => [
+            'data'    => [
                 'id' => $task->id,
-                'title' => $task->title,
-                'description' => $task->description,
-                'priority' => $task->priority,
-                'status' => $task->status,
-                'due_date' => $task->due_date?->format('Y-m-d'),
-                'assigned_to' => $task->assignedUser ? [
-                    'id' => $task->assignedUser->id,
-                    'name' => $task->assignedUser->name,
-                ] : null,
-            ],
+                'stage'  => $task->stage,
+                'update' => $updatedFields
+            ]
         ]);
     }
 
@@ -167,6 +178,19 @@ class TaskController extends Controller
                 'status' => $task->status,
             ],
         ]);
+    }
+
+    public function moveTask(Request $request, Task $task)
+    {
+        $request->validate([
+            'stage' => 'required|string',
+        ]);
+
+        $task->update([
+            'stage' => $request->stage
+        ]);
+
+        return response()->json(['message' => 'Task moved successfully', 'task' => $task]);
     }
 
     /**

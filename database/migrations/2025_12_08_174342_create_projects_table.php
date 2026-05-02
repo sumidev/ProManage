@@ -16,10 +16,10 @@ return new class extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('type')->nullable();
-            $table->string('stage')->default('planning');
-            $table->enum('status', ['active', 'hold', 'completed'])->default('active');
+            $table->json('stages')->nullable();
+            $table->string('status')->default('active');
             $table->date('deadline')->nullable();
-            $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });
     }

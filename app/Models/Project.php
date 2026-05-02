@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Enums\ProjectStage;
+use App\Enums\ProjectStatus;
+
 
 class Project extends Model
 {
@@ -13,19 +16,29 @@ class Project extends Model
         'name',
         'description',
         'type',
-        'stage',
+        'stages',
         'status',
         'deadline',
         'created_by',
+        'user_id'
     ];
 
     protected $casts = [
-        'due_date' => 'date',
+        'stages' => 'array',
+        'status' => ProjectStatus::class,
+        'deadline' => 'date',
+        'created_at' => 'datetime',
     ];
 
-    public function user()
+    public function owner()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function members() {
+        return $this->belongsToMany(User::class, 'project_user')
+                    ->withPivot('role')
+                    ->withTimestamps();
     }
 
     public function tasks()
