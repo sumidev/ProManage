@@ -21,6 +21,8 @@ class ProjectController extends Controller
     {
         $userId = $request->user()->id;
         $search = $request->query('search');
+        $type = $request->query('type');
+        $dueDate = $request->query('dueDate');
 
         $projects = Project::query()
             ->where(function ($query) use ($userId) {
@@ -30,12 +32,37 @@ class ProjectController extends Controller
                     });
             })
 
-            // 2. 🔍 SEARCH GROUP: Name me mile YA description me mile
             ->when($search, function ($query, $search) {
                 $query->where(function ($searchQuery) use ($search) {
                     $searchQuery->where('name', 'LIKE', "%{$search}%")
                         ->orWhere('description', 'LIKE', "%{$search}%");
                 });
+            })
+
+            ->when($type, function ($query, $type) {
+                if (is_array($type) && count($type) > 0) {
+                    $query->whereIn('type', $type);
+                }
+            })
+
+            ->when($dueDate, function ($query, $dueDate) {
+                $today = now()->startOfDay();
+                $endOfWeek = now()->endOfWeek();
+
+                switch ($dueDate) {
+                    case 'today':
+                        $query->whereDate('deadline', $today);
+                        break;
+                    case 'overdue':
+                        $query->whereDate('deadline', '<', $today);
+                        break;
+                    case 'week':
+                        $query->whereBetween('deadline', [$today, $endOfWeek]);
+                        break;
+                    case 'no_date':
+                        $query->whereNull('deadline');
+                        break;
+                }
             })
             ->withCount([
                 'tasks',
@@ -50,7 +77,7 @@ class ProjectController extends Controller
                 }
             ])
             ->latest()
-            ->paginate(9);
+            ->paginate(6);
 
         $projects->getCollection()->transform(function ($project) use ($userId) {
             return [
@@ -59,6 +86,8 @@ class ProjectController extends Controller
                 'description' => $project->description,
                 'status' => $project->status,
                 'is_owner' => $project->user_id === $userId,
+                'type' => $project->type,
+                'deadline' => $project->deadline,
                 'tasks_count' => $project->tasks_count,
                 'pending_count' => $project->pending_tasks_count,
                 'in_progress_count' => $project->in_progress_tasks_count,

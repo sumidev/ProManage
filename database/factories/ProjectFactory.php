@@ -27,7 +27,13 @@ class ProjectFactory extends Factory
         return [
             'name' => fake()->catchPhrase(),
             'description' => fake()->paragraph(),
-            'type' => fake()->randomElement(['Software', 'Marketing', 'Design', 'Consulting']),
+            'type' => fake()->randomElement([
+                "software",
+                "mobile_app",
+                "website",
+                "design",
+                "marketing"
+            ]),
 
             // ✅ Random Stages pick karega
             'stages' => fake()->randomElement($stageTemplates),
@@ -40,14 +46,14 @@ class ProjectFactory extends Factory
 
     public function configure(): static
     {
-       return $this->afterCreating(function ($project) {
+        return $this->afterCreating(function ($project) {
 
-        $project->members()->attach($project->user_id, ['role' => 'admin']);
+            $project->members()->attach($project->user_id, ['role' => 'admin']);
 
             $users = User::where('id', '!=', $project->user_id)
-                         ->inRandomOrder()
-                         ->take(rand(4, 10))
-                         ->get();
+                ->inRandomOrder()
+                ->take(rand(4, 10))
+                ->get();
 
             if ($users->count() > 0) {
                 $project->members()->attach($users, ['role' => 'member']);
