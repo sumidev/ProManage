@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\TaskMoved;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
@@ -189,6 +190,9 @@ class TaskController extends Controller
         $task->update([
             'stage' => $request->stage
         ]);
+
+        $task->load('assignedUser');
+        broadcast(new TaskMoved($task))->toOthers();
 
         return response()->json(['message' => 'Task moved successfully', 'task' => $task]);
     }
