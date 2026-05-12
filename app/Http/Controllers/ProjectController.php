@@ -222,23 +222,23 @@ class ProjectController extends Controller
             ], 403);
         }
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+        $validatedData = $request->validate([
+            'name'        => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|nullable|string',
+            'type'       => 'sometimes|required|string',
+            'status'       => 'sometimes|required|string',
         ]);
 
-        $project->update([
-            'name' => $request->name,
-            'description' => $request->description,
-        ]);
+        $project->update($validatedData);
+
+        $updatedFields = $project->only(array_keys($validatedData));
 
         return response()->json([
             'success' => true,
             'message' => 'Project updated successfully',
             'data' => [
                 'id' => $project->id,
-                'name' => $project->name,
-                'description' => $project->description,
+                'update' => $updatedFields
             ],
         ]);
     }

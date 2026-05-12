@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Events\InvitationCreated;
 use App\Listeners\DispatchInvitationEmail;
 use App\Listeners\SendInAppNotification;
+use App\Models\Task;
+use App\Observers\TaskObserver;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,6 +25,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        
+        Task::observe(TaskObserver::class);
     }
 }

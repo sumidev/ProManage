@@ -25,6 +25,7 @@ return new class extends Migration
             $table->foreignId('assigned_by')->constrained('users');
             $table->foreignId('assigned_to')->nullable()->constrained('users');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
