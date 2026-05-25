@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Project invitation — ProManage</title>
+    <title>Reset your ProManage password</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f7f8f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f7f8f9;padding:32px 16px;">
@@ -31,62 +31,35 @@
                     <tr>
                         <td style="background-color:#ffffff;border:1px solid #dcdfe4;border-radius:8px;padding:32px;box-shadow:0 4px 12px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.04);">
                             <h1 style="margin:0 0 8px 0;font-size:20px;font-weight:700;color:#1d2125;line-height:1.3;">
-                                You&apos;re invited to a project
+                                Reset your password
                             </h1>
                             <p style="margin:0 0 24px 0;font-size:14px;line-height:1.5;color:#44546f;">
-                                <strong style="color:#1d2125;">{{ $inviterName }}</strong> has invited you to collaborate on a project in ProManage. Accept the invitation to join the team and start working together.
+                                @if(!empty($userName))
+                                    Hi {{ $userName }},
+                                @else
+                                    Hi there,
+                                @endif
+                                we received a request to reset the password for your ProManage account. Click the button below to choose a new password.
                             </p>
-
-                            {{-- Project details --}}
-                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px 0;background-color:#f7f8f9;border:1px solid #dcdfe4;border-radius:8px;">
-                                <tr>
-                                    <td style="padding:16px 18px;">
-                                        <p style="margin:0 0 10px 0;font-size:11px;font-weight:700;color:#8590a2;text-transform:uppercase;letter-spacing:0.06em;">
-                                            Project details
-                                        </p>
-                                        <table role="presentation" cellpadding="0" cellspacing="0">
-                                            <tr>
-                                                <td style="width:44px;height:44px;background-color:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;text-align:center;vertical-align:middle;">
-                                                    <span style="font-size:18px;font-weight:700;color:#6366f1;line-height:44px;">{{ $projectInitial }}</span>
-                                                </td>
-                                                <td style="padding-left:12px;vertical-align:middle;">
-                                                    <p style="margin:0 0 4px 0;font-size:16px;font-weight:700;color:#1d2125;line-height:1.3;">
-                                                        {{ $projectName }}
-                                                    </p>
-                                                    @if(!empty($projectDescription))
-                                                        <p style="margin:0;font-size:13px;line-height:1.5;color:#44546f;">
-                                                            {{ $projectDescription }}
-                                                        </p>
-                                                    @else
-                                                        <p style="margin:0;font-size:13px;line-height:1.5;color:#8590a2;font-style:italic;">
-                                                            No description provided for this project.
-                                                        </p>
-                                                    @endif
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
 
                             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
                                 <tr>
                                     <td align="center" style="padding:0 0 24px 0;">
-                                        <a href="{{ $acceptUrl }}"
+                                        <a href="{{ $resetUrl }}"
                                            style="display:inline-block;background-color:#6366f1;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:10px 24px;border-radius:6px;line-height:1.4;">
-                                            Accept invitation
+                                            Reset password
                                         </a>
                                     </td>
                                 </tr>
                             </table>
 
                             <p style="margin:0 0 12px 0;font-size:13px;line-height:1.5;color:#44546f;">
-                                If you don&apos;t want to join this project, you can safely ignore this email or decline from the invitation page after opening the link.
+                                This link expires in <strong style="color:#1d2125;">60 minutes</strong>. If you didn&apos;t request a password reset, you can safely ignore this email.
                             </p>
 
                             <p style="margin:0;font-size:12px;line-height:1.5;color:#8590a2;word-break:break-all;">
                                 Button not working? Copy and paste this URL into your browser:<br>
-                                <a href="{{ $acceptUrl }}" style="color:#6366f1;text-decoration:underline;">{{ $acceptUrl }}</a>
+                                <a href="{{ $resetUrl }}" style="color:#6366f1;text-decoration:underline;">{{ $resetUrl }}</a>
                             </p>
                         </td>
                     </tr>

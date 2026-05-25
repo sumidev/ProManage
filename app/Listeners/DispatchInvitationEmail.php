@@ -3,25 +3,15 @@
 namespace App\Listeners;
 
 use App\Events\InvitationCreated;
-use App\Jobs\SendInvitationEmail;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
+use App\Mail\ProjectInvitationMail;
+use Illuminate\Support\Facades\Mail;
 
-class DispatchInvitationEmail implements ShouldQueue
+class DispatchInvitationEmail
 {
-    /**
-     * Create the event listener.
-     */
-    public function __construct()
-    {
-        //
-    }
-
-    /**
-     * Handle the event.
-     */
     public function handle(InvitationCreated $event): void
     {
-        SendInvitationEmail::dispatch($event->invitation);
+        $invitation = $event->invitation->loadMissing(['project', 'inviter']);
+
+        Mail::to($invitation->email)->send(new ProjectInvitationMail($invitation));
     }
 }

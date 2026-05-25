@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\AiController;
+use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
@@ -23,10 +26,13 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword']);
+Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/dashboard/stats',[DashboardController::class, 'stats']);
+    Route::get('/search', [GlobalSearchController::class, 'index']);
     // Auth routes
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
@@ -52,4 +58,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/admin/users',[UserController::class,'index']);
     Route::patch('/admin/users/{userId}/role',[UserController::class,'updateSystemRole']);
+    Route::post('/user/updateProfile', [UserController::class, 'updateProfile']);
+    Route::post('user/updatePassword',[UserController::class,'updatePassword']);
+
+    Route::post('/ai/generate-project', [AiController::class, 'generateProject']);
 });

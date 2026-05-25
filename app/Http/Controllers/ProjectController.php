@@ -77,7 +77,7 @@ class ProjectController extends Controller
                 }
             ])
             ->latest()
-            ->paginate(6);
+            ->paginate(12);
 
         $projects->getCollection()->transform(function ($project) use ($userId) {
             return [
@@ -146,7 +146,13 @@ class ProjectController extends Controller
             return response()->json(['message' => 'Forbidden: You do not have access to view this project.'], 403);
         }
 
-        $definedStages = $project->stages ?? ['todo', 'in_progress', 'done'];
+        $definedStages = $project->stages ?? [
+            "backlog",
+            "todo",
+            "in_progress",
+            "review",
+            "done"
+        ];
 
         $members = $project->members->map(function ($user) {
             return [
@@ -299,7 +305,7 @@ class ProjectController extends Controller
             'invited_by' => $request->user()->id,
         ]);
 
-        InvitationCreated::dispatch($invitation);
+        InvitationCreated::dispatch($invitation->loadMissing(['project', 'inviter']));
 
         return response()->json([
             'success' => true,
