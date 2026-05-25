@@ -177,8 +177,9 @@ class ProjectController extends Controller
                 'id' => $task->id,
                 'name' => $task->name,
                 'description' => $task->description,
+                'type' => $task->type ?? 'task',
                 'priority' => $task->priority,
-                'stage' => $task->stage, // Ensure DB column name matches (stage vs status)
+                'stage' => $task->stage,
                 'due_date' => $task->due_date ? $task->due_date->format('Y-m-d') : null,
                 'assigned_to' => $task->assignedUser ? $task->assignedUser : null,
                 'comments_count' => 0,

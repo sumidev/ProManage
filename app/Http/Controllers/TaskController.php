@@ -43,6 +43,7 @@ class TaskController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'type' => 'nullable|in:task,bug,feature,story',
             'priority' => 'required|in:low,medium,high,critical',
             'due_date' => 'nullable|date',
             'stage' => 'nullable|string',
@@ -59,12 +60,13 @@ class TaskController extends Controller
         $task = $project->tasks()->create([
             'name' => $request->name,
             'description' => $request->description,
+            'type' => $request->type ?? 'task',
             'priority' => $request->priority,
             'status' => 'pending',
             'due_date' => $request->due_date,
             'assigned_to' => $request->assigned_to,
             'assigned_by' => $request->user()->id,
-            'stage' => $request->stage,
+            'stage' => $request->stage ?? 'todo',
         ]);
 
         $task->load('assignedUser:id,first_name,last_name');
@@ -76,8 +78,10 @@ class TaskController extends Controller
                 'id' => $task->id,
                 'name' => $task->name,
                 'description' => $task->description,
+                'type' => $task->type ?? 'task',
                 'priority' => $task->priority,
                 'status' => $task->status,
+                'stage' => $task->stage,
                 'due_date' => $task->due_date?->format('Y-m-d'),
                 'assigned_to' => $task->assignedUser ? $task->assignedUser : null,
             ],
@@ -115,6 +119,7 @@ class TaskController extends Controller
         $validatedData = $request->validate([
             'name'        => 'sometimes|required|string|max:255',
             'description' => 'sometimes|nullable|string',
+            'type'        => 'sometimes|in:task,bug,feature,story',
             'priority'    => 'sometimes|required|in:low,medium,high,critical',
             'stage'       => 'sometimes|required|string',
             'due_date'    => 'sometimes|nullable|date',

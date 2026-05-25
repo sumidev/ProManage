@@ -51,13 +51,14 @@ class GlobalSearchController extends Controller
                     ->orWhere('description', 'LIKE', $like);
             })
             ->with(['project:id,name'])
-            ->select('id', 'name', 'stage', 'priority', 'project_id')
+            ->select('id', 'name', 'type', 'stage', 'priority', 'project_id')
             ->latest()
             ->limit(12)
             ->get()
             ->map(fn (Task $task) => [
                 'id' => $task->id,
                 'name' => $task->name,
+                'type' => $task->type ?? 'task',
                 'stage' => $task->stage,
                 'priority' => $task->priority,
                 'project_id' => $task->project_id,

@@ -13,6 +13,7 @@ class Task extends Model
         'project_id',
         'name',
         'description',
+        'type',
         'priority',
         'status',
         'stage',
