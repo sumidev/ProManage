@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Notifications\VerifyEmailNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -33,14 +34,13 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $user->notify(new VerifyEmailNotification());
 
         return response()->json([
             'success' => true,
-            'message' => 'User registered successfully',
+            'message' => 'Registration successful. Please verify your email before logging in.',
             'data' => [
                 'user' => $user,
-                'token' => $token,
             ],
         ], 201);
     }
@@ -58,6 +58,14 @@ class AuthController extends Controller
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please verify your email before logging in.',
+                'code' => 'EMAIL_NOT_VERIFIED',
+            ], 403);
         }
 
         // Delete old tokens
@@ -90,6 +98,29 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'data' => $request->user(),
+        ]);
+    }
+
+    public function resendVerificationEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        $user = User::where('email', $request->email)->firstOrFail();
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Email is already verified.',
+            ]);
+        }
+
+        $user->notify(new VerifyEmailNotification());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Verification email sent successfully.',
         ]);
     }
 }

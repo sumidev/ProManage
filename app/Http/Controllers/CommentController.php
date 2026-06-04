@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\Task;
-use Dom\Comment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class CommentController extends Controller
 {
@@ -29,7 +29,9 @@ class CommentController extends Controller
             ->whereNull('parent_id')
             ->with([
                 'user:id,first_name,last_name,profile_pic',
-                'replies'
+                'attachments',
+                'replies.user:id,first_name,last_name,profile_pic',
+                'replies.attachments'
             ])
             ->latest()
             ->get();
@@ -54,30 +56,42 @@ class CommentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'description'      => 'required|string',
-            'commentable_type' => 'required|string|in:task,project', // Frontend se 'task' ya 'project' aayega
+            'description'      => 'nullable|string|required_without:attachment',
+            'attachment'       => 'nullable|file|max:10240|mimes:jpg,jpeg,png,webp,pdf,doc,docx,txt,xlsx,csv,zip',
+            'commentable_type' => 'required|string|in:task,project',
             'commentable_id'   => 'required|integer',
-            'parent_id'        => 'nullable|exists:comments,id' // Agar reply hai, toh parent ID
+            'parent_id'        => 'nullable|exists:comments,id'
         ]);
 
-        // 2. Map string to actual Laravel Model Class
         $modelClass = $validated['commentable_type'] === 'task'
-            ? Task::class
-            : Project::class;
+            ? \App\Models\Task::class
+            : \App\Models\Project::class;
 
-        // 3. Check karo ki Task ya Project actual me exist karta hai ya nahi
         $model = $modelClass::findOrFail($validated['commentable_id']);
 
-        // 4. Create the Comment (Morph relation use karke)
         $comment = $model->comments()->create([
-            'description' => $validated['description'],
-            'parent_id'   => $validated['parent_id'],
+            'description' => $validated['description'] ?? '',
+            'parent_id'   => $validated['parent_id'] ?? null,
             'user_id'     => $request->user()->id,
-            'parent_id'   => $request->parent_id,
         ]);
 
-        // 5. Frontend (React) ko user ki details chahiye hogi UI me avatar dikhane ke liye
-        $comment->load('user:id,first_name,last_name,email,profile_pic');
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+
+            $path = $file->store('attachments', 'public');
+            $comment->attachments()->create([
+                'file_name'   => $file->getClientOriginalName(),
+                'file_path'   => $path,
+                'mime_type'   => $file->getClientMimeType(),
+                'file_size'   => $file->getSize(),
+                'uploaded_by' => $request->user()->id,
+            ]);
+        }
+
+        $comment->load([
+            'user:id,first_name,last_name,email,profile_pic',
+            'attachments'
+        ]);
 
         return response()->json([
             'success' => true,
@@ -115,39 +129,35 @@ class CommentController extends Controller
         //
     }
 
-    private function formatComment($comment, $isReply = false)
+    private function formatComment($comment)
     {
-        $data = [
+        return [
             'id'          => $comment->id,
             'description' => $comment->description,
             'parent_id'   => $comment->parent_id,
             'created_at'  => $comment->created_at,
+
+            'attachments' => $comment->relationLoaded('attachments') && $comment->attachments->isNotEmpty()
+                ? $comment->attachments->map(function ($file) {
+                    return [
+                        'id'   => $file->id,
+                        'name' => $file->file_name,
+                        'mime' => $file->mime_type,
+                        'size' => $file->file_size,
+                        'url'  => Storage::disk('public')->url($file->file_path),
+                    ];
+                })->all()
+                : [],
+
             'user' => [
                 'id'     => $comment->user->id,
                 'name'   => $comment->user->first_name . ' ' . $comment->user->last_name,
                 'avatar' => $comment->user->profile_pic
-            ]
+            ],
+
+            'replies' => $comment->relationLoaded('replies')
+                ? $comment->replies->map(fn($reply) => $this->formatComment($reply))->values()->all()
+                : [],
         ];
-
-        if (!$isReply) {
-            $data['replies'] = $comment->relationLoaded('replies')
-                                ? $this->flattenReplies($comment->replies)
-                                : [];
-        }
-
-        return $data;
-    }
-
-    // 2. The Flattener Helper
-    private function flattenReplies($replies)
-    {
-        $flatArray = [];
-        foreach ($replies as $reply) {
-            $flatArray[] = $this->formatComment($reply, true);
-            if ($reply->relationLoaded('replies') && $reply->replies->isNotEmpty()) {
-                $flatArray = array_merge($flatArray, $this->flattenReplies($reply->replies));
-            }
-        }
-        return $flatArray;
     }
 }

@@ -11,6 +11,10 @@ class Comment extends Model
 
     protected $fillable = [
         'description',
+        'attachment_path',
+        'attachment_name',
+        'attachment_mime',
+        'attachment_size',
         'user_id',
         'commentable_id',
         'commentable_type',
@@ -35,5 +39,10 @@ class Comment extends Model
     public function replies()
     {
         return $this->hasMany(Comment::class, 'parent_id')->with(['user', 'replies']);
+    }
+
+    public function attachments()
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
     }
 }
