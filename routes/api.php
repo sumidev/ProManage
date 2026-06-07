@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Route;
 // });
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/email/resend-verification', [AuthController::class, 'resendVerificationEmail']);
+Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail']);
 
 Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword']);
 Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
