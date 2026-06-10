@@ -2,21 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\ProjectServiceInterface;
+use App\Contracts\ProjectRepositoryInterface;
 use App\Enums\ProjectStatus;
-use App\Events\InvitationCreated;
-use App\Models\Project;
-use App\Models\ProjectInvitation;
-use App\Models\User;
-use Illuminate\Contracts\Database\Eloquent\Builder;
+use App\Http\Requests\StoreProjectRequest;
+use App\Http\Requests\UpdateProjectRequest;
+use App\Http\Requests\InviteMemberRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
+use Exception;
 
 class ProjectController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    protected ProjectServiceInterface $projectService;
+    protected ProjectRepositoryInterface $projectRepository;
+
+    public function __construct(
+        ProjectServiceInterface $projectService,
+        ProjectRepositoryInterface $projectRepository
+    ) {
+        $this->projectService = $projectService;
+        $this->projectRepository = $projectRepository;
+    }
+
     public function index(Request $request)
     {
         $userId = $request->user()->id;
@@ -24,60 +31,7 @@ class ProjectController extends Controller
         $type = $request->query('type');
         $dueDate = $request->query('dueDate');
 
-        $projects = Project::query()
-            ->where(function ($query) use ($userId) {
-                $query->where('user_id', $userId)
-                    ->orWhereHas('members', function (Builder $memberQuery) use ($userId) {
-                        $memberQuery->where('users.id', $userId);
-                    });
-            })
-
-            ->when($search, function ($query, $search) {
-                $query->where(function ($searchQuery) use ($search) {
-                    $searchQuery->where('name', 'LIKE', "%{$search}%")
-                        ->orWhere('description', 'LIKE', "%{$search}%");
-                });
-            })
-
-            ->when($type, function ($query, $type) {
-                if (is_array($type) && count($type) > 0) {
-                    $query->whereIn('type', $type);
-                }
-            })
-
-            ->when($dueDate, function ($query, $dueDate) {
-                $today = now()->startOfDay();
-                $endOfWeek = now()->endOfWeek();
-
-                switch ($dueDate) {
-                    case 'today':
-                        $query->whereDate('deadline', $today);
-                        break;
-                    case 'overdue':
-                        $query->whereDate('deadline', '<', $today);
-                        break;
-                    case 'week':
-                        $query->whereBetween('deadline', [$today, $endOfWeek]);
-                        break;
-                    case 'no_date':
-                        $query->whereNull('deadline');
-                        break;
-                }
-            })
-            ->withCount([
-                'tasks',
-                'tasks as pending_tasks_count' => function ($query) {
-                    $query->where('stage', 'todo');
-                },
-                'tasks as in_progress_tasks_count' => function ($query) {
-                    $query->where('stage', 'in_progress');
-                },
-                'tasks as completed_tasks_count' => function ($query) {
-                    $query->where('stage', 'done');
-                }
-            ])
-            ->latest()
-            ->paginate(12);
+        $projects = $this->projectRepository->getProjectsForUser($userId, $search, $type, $dueDate);
 
         $projects->getCollection()->transform(function ($project) use ($userId) {
             return [
@@ -102,29 +56,15 @@ class ProjectController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(StoreProjectRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'type' => 'required|string',
-            'deadline' => 'required|date',
-        ]);
+        $data = $request->validated();
+        $data['status'] = ProjectStatus::ACTIVE;
+        $data['stages'] = ['backlog', 'todo', 'in_progress', 'review', 'done'];
+        $data['user_id'] = $request->user()->id;
 
-        $project = $request->user()->projects()->create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'type' => $request->type,
-            'deadline' => $request->deadline,
-            'status' => ProjectStatus::ACTIVE,
-            'stages' =>  ['backlog', 'todo', 'in_progress', 'review', 'done'],
-            "user_id" => Auth::user()->id,
-        ]);
-
-        $project->members()->attach(Auth::user()->id, ['role' => 'owner']);
+        $project = $this->projectRepository->createProject($data);
+        $project->members()->attach($request->user()->id, ['role' => 'owner']);
 
         return response()->json([
             'success' => true,
@@ -133,136 +73,51 @@ class ProjectController extends Controller
         ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Request $request, Project $project)
+    public function show(Request $request, int $projectId)
     {
-        $user = $request->user();
-        $isOwner = $project->user_id === $user->id;
-        $isMember = $project->members()->where('users.id', $user->id)->exists();
+        try {
+            $project = $this->projectRepository->getProjectByIdWithTasks($projectId);
+            $kanbanData = $this->projectService->getProjectDetailsForKanban($project, $request->user()->id);
 
-        if (!$isOwner && !$isMember) {
-            return response()->json(['message' => 'Forbidden: You do not have access to view this project.'], 403);
+            return response()->json([
+                'success' => true,
+                'data' => $kanbanData,
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['message' => $e->getMessage()], $e->getCode() ?: 500);
         }
-
-        $definedStages = $project->stages ?? [
-            "backlog",
-            "todo",
-            "in_progress",
-            "review",
-            "done"
-        ];
-
-        $members = $project->members->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'firstName' => $user->first_name,
-                'lastName' => $user->last_name,
-                'email' => $user->email,
-                'role' => $user->pivot->role, // Pivot table se role nikala (admin/member)
-                'avatar' => null, // Future me image URL daal dena
-            ];
-        });
-
-        $tasks = $project->tasks()
-            ->with('assignedUser:id,first_name,last_name')
-            ->orderBy('order', 'asc') // Kanban me order matter karta hai
-            ->get();
-
-        // 4. Tasks ko Group karo (Backend Transformation)
-        // Hum pehle tasks ko format kar rahe hain, fir group karenge
-        $formattedTasks = $tasks->map(function ($task) {
-            return [
-                'id' => $task->id,
-                'name' => $task->name,
-                'description' => $task->description,
-                'type' => $task->type ?? 'task',
-                'priority' => $task->priority,
-                'stage' => $task->stage,
-                'due_date' => $task->due_date ? $task->due_date->format('Y-m-d') : null,
-                'assigned_to' => $task->assignedUser ? $task->assignedUser : null,
-                'comments_count' => 0,
-                'comments' => [],
-            ];
-        });
-
-        // 5. Group by Stage
-        $groupedTasks = $formattedTasks->groupBy('stage');
-
-        // 6. Final Structure Banao (Ensure Empty Columns appear)
-        $kanbanData = [];
-
-        foreach ($definedStages as $stage) {
-            // Har defined stage ke liye check karo task hai ya nahi
-            // Agar nahi hai to empty array [] return karo
-            $kanbanData[$stage] = $groupedTasks->get($stage, []);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'project' => [
-                    'id' => $project->id,
-                    'name' => $project->name,
-                    'description' => $project->description,
-                    'type' => $project->type,
-                    'stages' => $definedStages, // Frontend ko pata hona chahiye columns ka order
-                    'deadline' => $project->deadline,
-                    'status' => $project->status,
-                    'members' => $members,
-                ],
-                'tasks' => $kanbanData, // { "todo": [...], "testing": [] } (Dynamic Keys)
-            ],
-        ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Project $project)
+    public function update(UpdateProjectRequest $request, int $projectId)
     {
-        if ($project->user_id !== $request->user()->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
+        $project = $this->projectRepository->findById($projectId);
+
+        if (!$project || $project->user_id !== $request->user()->id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized or Not Found'], 403);
         }
 
-        $validatedData = $request->validate([
-            'name'        => 'sometimes|required|string|max:255',
-            'description' => 'sometimes|nullable|string',
-            'type'       => 'sometimes|required|string',
-            'status'       => 'sometimes|required|string',
-        ]);
-
-        $project->update($validatedData);
-
-        $updatedFields = $project->only(array_keys($validatedData));
+        $validatedData = $request->validated();
+        $this->projectRepository->updateProject($project, $validatedData);
 
         return response()->json([
             'success' => true,
             'message' => 'Project updated successfully',
             'data' => [
                 'id' => $project->id,
-                'update' => $updatedFields
+                'update' => $validatedData
             ],
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Request $request, Project $project)
+    public function destroy(Request $request, int $projectId)
     {
-        if ($project->user_id !== $request->user()->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
+        $project = $this->projectRepository->findById($projectId);
+
+        if (!$project || $project->user_id !== $request->user()->id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized or Not Found'], 403);
         }
 
-        $project->delete();
+        $this->projectRepository->deleteProject($project);
 
         return response()->json([
             'success' => true,
@@ -270,58 +125,28 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function inviteMember(Request $request)
+    public function inviteMember(InviteMemberRequest $request)
     {
-        $request->validate([
-            'projectId' => 'required|exists:projects,id',
-            'email'     => 'required|email',
-        ]);
+        try {
+            $invitation = $this->projectService->inviteMemberToProject(
+                $request->projectId,
+                $request->email,
+                $request->user()->id
+            );
 
-        $project = Project::findOrFail($request->projectId);
-
-        if ($project->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized: Only the owner can invite members'], 403);
+            return response()->json([
+                'success' => true,
+                'message' => 'Invitation sent successfully!',
+                'data'    => $invitation
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['message' => $e->getMessage()], $e->getCode() ?: 500);
         }
-
-        $user = User::where('email', $request->email)->first();
-
-        if ($user && $project->members()->where('users.id', $user->id)->exists()) {
-            return response()->json(['message' => 'User is already a member of this project.'], 409);
-        }
-
-        $existingInvite = ProjectInvitation::where('project_id', $project->id)
-            ->where('email', $request->email)
-            ->where('status', 'pending')
-            ->first();
-
-        if ($existingInvite) {
-            return response()->json(['message' => 'An invitation has already been sent to this email.'], 409);
-        }
-
-        $invitation = ProjectInvitation::create([
-            'project_id' => $project->id,
-            'email'      => $request->email,
-            'token'      => Str::random(40),
-            'status'     => 'pending',
-            'invited_by' => $request->user()->id,
-        ]);
-
-        InvitationCreated::dispatch($invitation->loadMissing(['project', 'inviter']));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Invitation sent successfully!',
-            'data'    => $invitation
-        ]);
     }
 
     public function searchProject(Request $request)
     {
-        $projects = Project::query()
-            ->when($request->search, function ($query, $search) {
-                $query->where('name', 'LIKE', "%{$search}%")->orWhere('description', 'LIKE', "%{$search}%");
-            })
-            ->get();
+        $projects = $this->projectRepository->searchProjects($request->search ?? '');
 
         return response()->json([
             'success' => true,
