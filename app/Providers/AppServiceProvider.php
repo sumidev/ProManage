@@ -22,6 +22,16 @@ class AppServiceProvider extends ServiceProvider
             \App\Contracts\ProjectServiceInterface::class,
             \App\Services\ProjectService::class
         );
+
+        $this->app->bind(
+            \App\Contracts\TaskRepositoryInterface::class,
+            \App\Repositories\TaskRepository::class
+        );
+
+        $this->app->bind(
+            \App\Contracts\TaskServiceInterface::class,
+            \App\Services\TaskService::class
+        );
     }
 
     /**

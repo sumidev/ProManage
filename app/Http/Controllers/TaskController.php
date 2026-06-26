@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\TaskRepositoryInterface;
+use App\Contracts\TaskServiceInterface;
 use App\Events\TaskMoved;
+use App\Http\Requests\TaskRequest;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
@@ -11,6 +14,16 @@ use Illuminate\Support\Facades\Validator;
 
 class TaskController extends Controller
 {
+    protected TaskServiceInterface $taskService;
+    protected TaskRepositoryInterface $taskRepository;
+
+     public function __construct(
+        TaskServiceInterface $taskService,
+        TaskRepositoryInterface $taskRepository
+    ) {
+        $this->taskService = $taskService;
+        $this->taskRepository = $taskRepository;
+    }
     /**
      * Display a listing of the resource.
      */
@@ -107,7 +120,7 @@ class TaskController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Task $task)
+    public function update(TaskRequest $request, Task $task)
     {
         if ($task->project->user_id !== $request->user()->id) {
             return response()->json([
@@ -116,21 +129,12 @@ class TaskController extends Controller
             ], 403);
         }
 
-        $validatedData = $request->validate([
-            'name'        => 'sometimes|required|string|max:255',
-            'description' => 'sometimes|nullable|string',
-            'type'        => 'sometimes|in:task,bug,feature,story',
-            'priority'    => 'sometimes|required|in:low,medium,high,critical',
-            'stage'       => 'sometimes|required|string',
-            'due_date'    => 'sometimes|nullable|date',
-            'assigned_to' => 'sometimes|nullable|exists:users,id',
-        ]);
+        $data = $request->validated();
+        $this->taskRepository->updateTask($task, $data);
 
-        $task->update($validatedData);
+        $updatedFields = $task->only(array_keys($data));
 
-        $updatedFields = $task->only(array_keys($validatedData));
-
-        if (array_key_exists('assigned_to', $validatedData) && $validatedData['assigned_to'] !== null) {
+        if (array_key_exists('assigned_to', $data) && $data['assigned_to'] !== null) {
             $updatedFields['assigned_to'] = $task->project->members()
                 ->where('users.id', $validatedData['assigned_to'])
                 ->get()
