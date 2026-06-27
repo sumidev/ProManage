@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Contracts\TaskRepositoryInterface;
-use App\Contracts\TaskServiceInterface;
+
+use App\Contracts\TaskRepository\TaskRepositoryInterface;
+use App\Contracts\TaskRepository\TaskServiceInterface;
 use App\Events\TaskMoved;
 use App\Http\Requests\TaskRequest;
 use App\Models\Project;
@@ -136,7 +137,7 @@ class TaskController extends Controller
 
         if (array_key_exists('assigned_to', $data) && $data['assigned_to'] !== null) {
             $updatedFields['assigned_to'] = $task->project->members()
-                ->where('users.id', $validatedData['assigned_to'])
+                ->where('users.id', $data['assigned_to'])
                 ->get()
                 ->map(function ($user) {
                     return [

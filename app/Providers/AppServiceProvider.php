@@ -2,8 +2,16 @@
 
 namespace App\Providers;
 
+use App\Contracts\ProjectRepository\ProjectRepositoryInterface;
+use App\Contracts\ProjectRepository\ProjectServiceInterface;
+use App\Contracts\TaskRepository\TaskRepositoryInterface;
+use App\Contracts\TaskRepository\TaskServiceInterface;
 use App\Models\Task;
 use App\Observers\TaskObserver;
+use App\Repositories\ProjectRepository;
+use App\Repositories\TaskRepository;
+use App\Services\ProjectService;
+use App\Services\TaskService;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -14,23 +22,23 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(
-            \App\Contracts\ProjectRepositoryInterface::class,
-            \App\Repositories\ProjectRepository::class
+            ProjectRepositoryInterface::class,
+            ProjectRepository::class
         );
 
         $this->app->bind(
-            \App\Contracts\ProjectServiceInterface::class,
-            \App\Services\ProjectService::class
+            ProjectServiceInterface::class,
+            ProjectService::class
         );
 
         $this->app->bind(
-            \App\Contracts\TaskRepositoryInterface::class,
-            \App\Repositories\TaskRepository::class
+            TaskRepositoryInterface::class,
+            TaskRepository::class
         );
 
         $this->app->bind(
-            \App\Contracts\TaskServiceInterface::class,
-            \App\Services\TaskService::class
+            TaskServiceInterface::class,
+            TaskService::class
         );
     }
 

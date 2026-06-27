@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Repositories;
-use App\Contracts\TaskRepositoryInterface;
+use App\Contracts\TaskRepository\TaskRepositoryInterface;
 use App\Models\Task;
 
 class TaskRepository implements TaskRepositoryInterface

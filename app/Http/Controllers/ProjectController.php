@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Contracts\ProjectServiceInterface;
-use App\Contracts\ProjectRepositoryInterface;
+use App\Contracts\ProjectRepository\ProjectRepositoryInterface;
+use App\Contracts\ProjectRepository\ProjectServiceInterface;
 use App\Enums\ProjectStatus;
 use App\Http\Requests\StoreProjectRequest;
 use App\Http\Requests\UpdateProjectRequest;

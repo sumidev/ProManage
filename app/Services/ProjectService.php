@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use App\Contracts\ProjectServiceInterface;
-use App\Contracts\ProjectRepositoryInterface;
+
+use App\Contracts\ProjectRepository\ProjectRepositoryInterface;
+use App\Contracts\ProjectRepository\ProjectServiceInterface;
 use App\Models\Project;
 use App\Models\ProjectInvitation;
 use App\Models\User;

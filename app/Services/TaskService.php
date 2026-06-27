@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use App\Contracts\TaskRepositoryInterface;
-use App\Contracts\TaskServiceInterface;
+use App\Contracts\TaskRepository\TaskRepositoryInterface;
+use App\Contracts\TaskRepository\TaskServiceInterface;
+use App\Models\Task;
 
 class TaskService implements TaskServiceInterface
 {
@@ -29,13 +30,13 @@ class TaskService implements TaskServiceInterface
         return $this->taskRepository->getTaskById($taskId);
     }
 
-    public function updateTask(int $taskId, array $data)
+    public function updateTask(Task $task, array $data)
     {
-        return $this->taskRepository->updateTask($taskId, $data);
+        return $this->taskRepository->updateTask($task, $data);
     }
 
-    public function deleteTask(int $taskId)
+    public function deleteTask(Task $task)
     {
-        return $this->taskRepository->deleteTask($taskId);
+        return $this->taskRepository->deleteTask($task);
     }
 }

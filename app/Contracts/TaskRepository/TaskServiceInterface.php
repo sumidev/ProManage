@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts;
+namespace App\Contracts\TaskRepository;
 
 interface TaskServiceInterface
 {
@@ -22,10 +22,10 @@ interface TaskServiceInterface
     /**
      * Update a task.
      */
-    public function updateTask(int $taskId, array $data);
+    public function updateTask(\App\Models\Task $task, array $data);
 
     /**
      * Delete a task.
      */
-    public function deleteTask(int $taskId);
+    public function deleteTask(\App\Models\Task $task);
 }
