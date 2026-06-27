@@ -11,7 +11,14 @@ class TaskRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        if ($this->route('project')) {
+            return $this->route('project')->user_id === $this->user()->id;
+        }
+
+        if ($this->route('task')) {
+            return $this->route('task')->project->user_id === $this->user()->id;
+        }
+        return false;
     }
 
     /**

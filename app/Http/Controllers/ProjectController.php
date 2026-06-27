@@ -137,7 +137,7 @@ class ProjectController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Invitation sent successfully!',
-                'data'    => $invitation
+                'data' => $invitation
             ]);
         } catch (Exception $e) {
             return response()->json(['message' => $e->getMessage()], $e->getCode() ?: 500);

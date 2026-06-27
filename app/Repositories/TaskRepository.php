@@ -11,7 +11,7 @@ class TaskRepository implements TaskRepositoryInterface
         return Task::where("project_id", $projectId)->get();
     }
 
-    public function createTask(array $data) : Task
+    public function createTask(array $data): Task
     {
         return Task::create($data);
     }
@@ -21,12 +21,12 @@ class TaskRepository implements TaskRepositoryInterface
         return Task::findOrFail($taskId);
     }
 
-    public function updateTask(Task $task, array $data):bool
+    public function updateTask(Task $task, array $data): bool
     {
         return $task->update($data);
     }
 
-    public function deleteTask(Task $task):  bool
+    public function deleteTask(Task $task): bool
     {
         return $task->delete();
     }

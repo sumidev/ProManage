@@ -4,25 +4,20 @@ namespace App\Http\Controllers;
 
 
 use App\Contracts\TaskRepository\TaskRepositoryInterface;
-use App\Contracts\TaskRepository\TaskServiceInterface;
 use App\Events\TaskMoved;
 use App\Http\Requests\TaskRequest;
 use App\Models\Project;
 use App\Models\Task;
-use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class TaskController extends Controller
 {
-    protected TaskServiceInterface $taskService;
     protected TaskRepositoryInterface $taskRepository;
 
-     public function __construct(
-        TaskServiceInterface $taskService,
+    public function __construct(
         TaskRepositoryInterface $taskRepository
     ) {
-        $this->taskService = $taskService;
         $this->taskRepository = $taskRepository;
     }
     /**
@@ -44,44 +39,17 @@ class TaskController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request, Project $project)
+    public function store(TaskRequest $request, Project $project)
     {
-        // Authorization check
-        if ($project->user_id !== $request->user()->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
-        }
+        $data = $request->validated();
 
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'type' => 'nullable|in:task,bug,feature,story',
-            'priority' => 'required|in:low,medium,high,critical',
-            'due_date' => 'nullable|date',
-            'stage' => 'nullable|string',
-            'assigned_to' => 'nullable|exists:users,id',
-        ]);
+        $data['project_id'] = $project->id;
+        $data['assigned_by'] = $request->user()->id;
+        $data['status'] = 'pending';
+        $data['type'] = $data['type'] ?? 'task';
+        $data['stage'] = $data['stage'] ?? 'todo';
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $task = $project->tasks()->create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'type' => $request->type ?? 'task',
-            'priority' => $request->priority,
-            'status' => 'pending',
-            'due_date' => $request->due_date,
-            'assigned_to' => $request->assigned_to,
-            'assigned_by' => $request->user()->id,
-            'stage' => $request->stage ?? 'todo',
-        ]);
+        $task = $this->taskRepository->createTask($data);
 
         $task->load('assignedUser:id,first_name,last_name');
 
@@ -96,7 +64,7 @@ class TaskController extends Controller
                 'priority' => $task->priority,
                 'status' => $task->status,
                 'stage' => $task->stage,
-                'due_date' => $task->due_date?->format('Y-m-d'),
+                'due_date' => $task->due_date ? Carbon::parse($task->due_date)->format('Y-m-d') : null,
                 'assigned_to' => $task->assignedUser ? $task->assignedUser : null,
             ],
         ], 201);
@@ -121,16 +89,18 @@ class TaskController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(TaskRequest $request, Task $task)
+    public function update(Request $request, Task $task)
     {
-        if ($task->project->user_id !== $request->user()->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
-        }
+        $data = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'description' => 'nullable|string',
+            'type' => 'nullable|in:task,bug,feature,story',
+            'priority' => 'sometimes|required|in:low,medium,high,critical',
+            'due_date' => 'nullable|date',
+            'stage' => 'nullable|string',
+            'assigned_to' => 'nullable|exists:users,id',
+        ]);
 
-        $data = $request->validated();
         $this->taskRepository->updateTask($task, $data);
 
         $updatedFields = $task->only(array_keys($data));
@@ -141,12 +111,12 @@ class TaskController extends Controller
                 ->get()
                 ->map(function ($user) {
                     return [
-                        'id'        => $user->id,
+                        'id' => $user->id,
                         'first_name' => $user->first_name,
-                        'last_name'  => $user->last_name,
-                        'email'     => $user->email,
-                        'role'      => $user->pivot->role ?? 'member',
-                        'avatar'    => $user->profile_pic ?? null,
+                        'last_name' => $user->last_name,
+                        'email' => $user->email,
+                        'role' => $user->pivot->role ?? 'member',
+                        'avatar' => $user->profile_pic ?? null,
                     ];
                 })
                 ->first();
@@ -155,9 +125,9 @@ class TaskController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Task updated successfully',
-            'data'    => [
+            'data' => [
                 'id' => $task->id,
-                'stage'  => $task->stage,
+                'stage' => $task->stage,
                 'update' => $updatedFields
             ]
         ]);
@@ -177,9 +147,7 @@ class TaskController extends Controller
             'status' => 'required|in:pending,in_progress,completed',
         ]);
 
-        $task->update([
-            'status' => $request->status,
-        ]);
+        $this->taskRepository->updateTask($task, $request->all());
 
         return response()->json([
             'success' => true,
@@ -197,9 +165,7 @@ class TaskController extends Controller
             'stage' => 'required|string',
         ]);
 
-        $task->update([
-            'stage' => $request->stage
-        ]);
+        $this->taskRepository->updateTask($task, $request->all());
 
         $task->load('assignedUser');
         broadcast(new TaskMoved($task))->toOthers();
@@ -220,7 +186,7 @@ class TaskController extends Controller
             ], 403);
         }
 
-        $task->delete();
+        $this->taskRepository->deleteTask($task);
 
         return response()->json([
             'success' => true,
